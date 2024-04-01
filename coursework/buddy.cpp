@@ -206,7 +206,34 @@ public:
 	 */
 	PageDescriptor *alloc_pages(int order) override
 	{
-		
+        // Make sure that the order is within range
+        assert(order < MAX_ORDER && order >= 0);
+        bool is_space = false;
+        PageDescriptor *first_free = nullptr;
+        int found_order = -1;
+
+        for (int i = order; i < MAX_ORDER; i++) {
+            if (&_free_areas[i] != nullptr) {
+                first_free = _free_areas[i];
+                found_order = i;
+                break;
+            }
+        }
+
+        if (first_free == nullptr){
+            mm_log.messagef(LogLevel::DEBUG, "No space available in current or higher orders");
+            return nullptr;
+        }
+
+        while (found_order > order) {
+            first_free = split_block(&first_free, found_order);
+            found_order--;
+        }
+
+        remove_block(first_free, order);
+
+        return first_free;
+
 	}
 
 
