@@ -146,14 +146,15 @@ private:
 		assert(is_correct_alignment_for_order(*block_pointer, source_order));
 
         // Make sure that source order isn't the minimum
-        assert(source_order > 0);
-
-        unsigned int order_below = source_order - 1;
-        PageDescriptor* left = *block_pointer;
-        PageDescriptor* right = buddy_of(*block_pointer, (order_below));
-        remove_block(*block_pointer, source_order);
-        insert_block(left, order_below);
-        insert_block(right, order_below);
+		assert(source_order > 0);
+		
+		mm_log.messagef(LogLevel::DEBUG, "Splitting block: block_pointer: %p, *block_pointer: *%p, source_order: %d", block_pointer, *block_pointer, source_order);
+		unsigned int order_below = source_order - 1;
+		PageDescriptor* left = *block_pointer;
+		PageDescriptor* right = buddy_of(*block_pointer, (order_below));
+		remove_block(*block_pointer, source_order);
+		insert_block(left, order_below);
+		insert_block(right, order_below);
 
 		return left;
 	}
@@ -173,13 +174,16 @@ private:
 		// Make sure the area_pointer is correctly aligned.
 		assert(is_correct_alignment_for_order(*block_pointer, source_order));
 
-        // Make sure that the source order isn't tha largest already
-        assert(source_order < MAX_ORDER);
+		// Make sure that the source order isn't tha largest already
+		assert(source_order < MAX_ORDER);
 
-        PageDescriptor* buddy = buddy_of(*block_pointer);
-        PageDescriptor* merged = insert_block(*block_pointer, (source_order + 1));
-        remove_block(*block_pointer, source_order);
-        remove_block(buddy, source_order);
+
+		PageDescriptor* buddy = buddy_of(*block_pointer, source_order);
+		PageDescriptor** merged = insert_block(*block_pointer, (source_order + 1));
+		
+		mm_log.messagef(LogLevel::DEBUG, "Merging blocks: *block_pointer: *%p, buddy_pointer: *%p source_order: %d",  *block_pointer, buddy, source_order);
+		remove_block(*block_pointer, source_order);
+		remove_block(buddy, source_order);
 		return merged;
 	}
 	
@@ -202,7 +206,7 @@ public:
 	 */
 	PageDescriptor *alloc_pages(int order) override
 	{
-		not_implemented();
+		
 	}
 
 
@@ -266,7 +270,7 @@ public:
 	void dump_state() const override
 	{
 		// Print out a header, so we can find the output in the logs.
-		mm_log.messagef(LogLevel::DEBUG, "BUDDY STATE:");
+	         mm_log.messagef(LogLevel::DEBUG, "BUDDY STATE:");
 		
 		// Iterate over each free area.
 		for (unsigned int i = 0; i < ARRAY_SIZE(_free_areas); i++) {
