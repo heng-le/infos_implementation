@@ -4,7 +4,7 @@
  */
 
 /*
- * STUDENT NUMBER: s
+ * STUDENT NUMBER: A0242521U
  */
 #include <infos/mm/page-allocator.h>
 #include <infos/mm/mm.h>
@@ -144,9 +144,18 @@ private:
 		
 		// Make sure the block_pointer is correctly aligned.
 		assert(is_correct_alignment_for_order(*block_pointer, source_order));
-		
-		// TODO: Implement this function
-		return nullptr;		
+
+        // Make sure that source order isn't the minimum
+        assert(source_order > 0);
+
+        unsigned int order_below = source_order - 1;
+        PageDescriptor* left = *block_pointer;
+        PageDescriptor* right = buddy_of(*block_pointer, (order_below));
+        remove_block(*block_pointer, source_order);
+        insert_block(left, order_below);
+        insert_block(right, order_below);
+
+		return left;
 	}
 	
 	/**
@@ -164,8 +173,14 @@ private:
 		// Make sure the area_pointer is correctly aligned.
 		assert(is_correct_alignment_for_order(*block_pointer, source_order));
 
-		// TODO: Implement this function
-		return nullptr;		
+        // Make sure that the source order isn't tha largest already
+        assert(source_order < MAX_ORDER);
+
+        PageDescriptor* buddy = buddy_of(*block_pointer);
+        PageDescriptor* merged = insert_block(*block_pointer, (source_order + 1));
+        remove_block(*block_pointer, source_order);
+        remove_block(buddy, source_order);
+		return merged;
 	}
 	
 public:
@@ -189,7 +204,8 @@ public:
 	{
 		not_implemented();
 	}
-	
+
+
 	/**
 	 * Frees 2^order contiguous pages.
 	 * @param pgd A pointer to an array of page descriptors to be freed.
@@ -202,7 +218,7 @@ public:
 		// illegal to free page 1 in order-1.
 		assert(is_correct_alignment_for_order(pgd, order));
 		
-		not_implemented();
+
 	}
 	
 	/**
@@ -223,10 +239,20 @@ public:
 	{
 		mm_log.messagef(LogLevel::DEBUG, "Buddy Allocator Initialising pd=%p, nr=0x%lx", page_descriptors, nr_page_descriptors);
 		
-		// TODO: Initialise the free area linked list for the maximum order
 		// to initialise the allocation algorithm.
-		
-		not_implemented();
+        uint64_t ppb = pages_per_block(MAX_ORDER - 1);
+        uint64_t nr_blocks = (nr_page_descriptors / ppb);
+
+        if (nr_blocks == 0){
+            return false;
+        }
+        PageDescriptor *first_page_descriptor = &page_descriptors[0];
+
+        for (unsigned int i = 0; i < nr_blocks; i++){
+            PageDescriptor *page_descriptor = first_page_descriptor + (i * ppb);
+            insert_block(page_descriptor, MAX_ORDER - 1);
+        }
+        return true;
 	}
 
 	/**
